@@ -7,22 +7,49 @@ export interface User {
   fullName: string;
 }
 
+// Kategori laporan
+export const REPORT_CATEGORIES = [
+  'Kebersihan',
+  'Ruangan Kelas',
+  'Masjid',
+  'Laboratorium',
+  'Keamanan',
+  'Toilet',
+  'Aula',
+  'Lainnya',
+] as const;
+
+export type ReportCategory = typeof REPORT_CATEGORIES[number];
+
+// Status laporan
+export const REPORT_STATUS = ['pending', 'in_progress', 'resolved'] as const;
+export type ReportStatus = typeof REPORT_STATUS[number];
+
+export const STATUS_LABELS: Record<ReportStatus, string> = {
+  pending: 'Menunggu',
+  in_progress: 'Diproses',
+  resolved: 'Selesai',
+};
+
 // Tipe data untuk laporan
 export interface Report {
   id: number;
   title: string;
+  category: ReportCategory;
   content: string;
   author: string;
   authorFullName: string;
   createdAt: Date;
-  status: 'pending' | 'reviewed';
+  status: ReportStatus;
+  adminReply?: string;
+  adminReplyAt?: Date;
 }
 
 // Kredensial yang sudah di-hardcode
 const CREDENTIALS = {
   users: [
-    { username: 'user1', password: 'user123', fullName: 'M Dantha Arianvasya', role: 'user' as const },
-    { username: 'user2', password: 'user123', fullName: 'Fardho', role: 'user' as const },
+    { username: 'user1', password: 'user123', fullName: 'Ahmad Mahasiswa', role: 'user' as const },
+    { username: 'user2', password: 'user123', fullName: 'Budi Santoso', role: 'user' as const },
   ],
   admins: [
     { username: 'admin', password: 'admin123', fullName: 'Admin Kampus', role: 'admin' as const },
@@ -34,8 +61,9 @@ interface AuthContextType {
   reports: Report[];
   login: (username: string, password: string) => { success: boolean; message: string };
   logout: () => void;
-  addReport: (title: string, content: string) => void;
-  updateReportStatus: (id: number, status: 'pending' | 'reviewed') => void;
+  addReport: (title: string, category: ReportCategory, content: string) => void;
+  updateReportStatus: (id: number, status: ReportStatus) => void;
+  addAdminReply: (id: number, reply: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -55,20 +83,44 @@ const loadReportsFromStorage = (): Report[] => {
     {
       id: 1,
       title: 'Fasilitas WiFi Kampus Lemot',
+      category: 'Lainnya' as ReportCategory,
       content: 'Koneksi WiFi di gedung kuliah sangat lambat, terutama saat jam sibuk. Mohon ditingkatkan kapasitasnya.',
       author: 'user1',
-      authorFullName: 'M Dantha Arianvasya',
+      authorFullName: 'Ahmad Mahasiswa',
       createdAt: new Date('2024-01-15'),
-      status: 'reviewed' as const,
+      status: 'resolved' as ReportStatus,
+      adminReply: 'Terima kasih atas laporannya. Kami akan segera menghubungi pihak IT untuk meningkatkan kapasitas WiFi.',
+      adminReplyAt: new Date('2024-01-16'),
     },
     {
       id: 2,
       title: 'AC Ruang Kelas Rusak',
+      category: 'Ruangan Kelas' as ReportCategory,
       content: 'AC di ruang kelas 301 sudah tidak berfungsi selama 2 minggu. Sangat mengganggu proses belajar.',
-      author: 'Fardho',
+      author: 'user2',
       authorFullName: 'Budi Santoso',
       createdAt: new Date('2024-01-20'),
-      status: 'pending' as const,
+      status: 'pending' as ReportStatus,
+    },
+    {
+      id: 3,
+      title: 'Toilet Gedung B Perlu Perbaikan',
+      category: 'Toilet' as ReportCategory,
+      content: 'Beberapa toilet di lantai 2 Gedung B mengalami kerusakan pada kran dan pintu.',
+      author: 'user1',
+      authorFullName: 'Ahmad Mahasiswa',
+      createdAt: new Date('2024-01-22'),
+      status: 'in_progress' as ReportStatus,
+    },
+    {
+      id: 4,
+      title: 'Kebersihan Kantin',
+      category: 'Kebersihan' as ReportCategory,
+      content: 'Area makan di kantin pusat perlu dibersihkan lebih sering karena banyak sampah berserakan.',
+      author: 'user2',
+      authorFullName: 'Budi Santoso',
+      createdAt: new Date('2024-01-25'),
+      status: 'pending' as ReportStatus,
     },
   ];
 };
@@ -125,12 +177,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // Fungsi menambah laporan baru
-  const addReport = (title: string, content: string) => {
+  const addReport = (title: string, category: ReportCategory, content: string) => {
     if (!user) return;
     
     const newReport: Report = {
       id: Date.now(),
       title,
+      category,
       content,
       author: user.username,
       authorFullName: user.fullName,
@@ -141,8 +194,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setReports((prev) => [newReport, ...prev]);
   };
 
+  // Fungsi menambah balasan admin
+  const addAdminReply = (id: number, reply: string) => {
+    setReports((prev) =>
+      prev.map((report) =>
+        report.id === id 
+          ? { ...report, adminReply: reply, adminReplyAt: new Date() } 
+          : report
+      )
+    );
+  };
+
   // Fungsi update status laporan
-  const updateReportStatus = (id: number, status: 'pending' | 'reviewed') => {
+  const updateReportStatus = (id: number, status: ReportStatus) => {
     setReports((prev) =>
       prev.map((report) =>
         report.id === id ? { ...report, status } : report
@@ -151,7 +215,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, reports, login, logout, addReport, updateReportStatus }}>
+    <AuthContext.Provider value={{ user, reports, login, logout, addReport, updateReportStatus, addAdminReply }}>
       {children}
     </AuthContext.Provider>
   );
