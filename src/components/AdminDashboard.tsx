@@ -360,12 +360,13 @@ function StatusBadge({ status }: { status: ReportStatus }) {
     resolved: { icon: CheckCircle2, className: 'bg-accent/10 text-accent' },
   };
   
-  const { icon: Icon, className } = config[status];
+  const safeStatus = status && config[status] ? status : 'pending';
+  const { icon: Icon, className } = config[safeStatus];
   
   return (
     <Badge className={`text-[10px] sm:text-xs gap-1 ${className}`}>
       <Icon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-      {STATUS_LABELS[status]}
+      {STATUS_LABELS[safeStatus]}
     </Badge>
   );
 }

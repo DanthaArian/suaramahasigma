@@ -70,13 +70,21 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Helper untuk load reports dari localStorage
 const loadReportsFromStorage = (): Report[] => {
-  const stored = localStorage.getItem('suara-mahasiswa-reports');
-  if (stored) {
-    const parsed = JSON.parse(stored);
-    return parsed.map((r: Report & { createdAt: string }) => ({
-      ...r,
-      createdAt: new Date(r.createdAt),
-    }));
+  try {
+    const stored = localStorage.getItem('suara-mahasiswa-reports');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return parsed.map((r: Report & { createdAt: string; adminReplyAt?: string }) => ({
+        ...r,
+        createdAt: new Date(r.createdAt),
+        adminReplyAt: r.adminReplyAt ? new Date(r.adminReplyAt) : undefined,
+        status: r.status || 'pending',
+        category: r.category || 'Lainnya',
+      }));
+    }
+  } catch (e) {
+    console.error('Error loading reports:', e);
+    localStorage.removeItem('suara-mahasiswa-reports');
   }
   // Default reports jika belum ada di localStorage
   return [
