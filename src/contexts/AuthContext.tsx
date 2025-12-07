@@ -48,7 +48,7 @@ export interface Report {
 // Kredensial yang sudah di-hardcode
 const CREDENTIALS = {
   users: [
-    { username: 'user1', password: 'user123', fullName: 'Ahmad Mahasiswa', role: 'user' as const },
+    { username: 'user1', password: 'user123', fullName: 'M Dantha Arianvasya', role: 'user' as const },
     { username: 'user2', password: 'user123', fullName: 'Budi Santoso', role: 'user' as const },
   ],
   admins: [
@@ -116,7 +116,7 @@ const loadReportsFromStorage = (): Report[] => {
       category: 'Toilet' as ReportCategory,
       content: 'Beberapa toilet di lantai 2 Gedung B mengalami kerusakan pada kran dan pintu.',
       author: 'user1',
-      authorFullName: 'Ahmad Mahasiswa',
+      authorFullName: 'M Dantha Arianvasya',
       createdAt: new Date('2024-01-22'),
       status: 'in_progress' as ReportStatus,
     },

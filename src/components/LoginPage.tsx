@@ -137,7 +137,7 @@ export function LoginPage() {
 
         {/* Footer */}
         <p className="text-center text-xs sm:text-sm text-muted-foreground mt-4 sm:mt-6">
-          © 2024 Suara Mahasiswa. Semua hak dilindungi.
+          © 2025 Suara Mahasiswa. Kelompok 3.
         </p>
       </div>
     </div>
