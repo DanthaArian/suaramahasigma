@@ -130,6 +130,7 @@ export function LoginPage() {
               <div className="space-y-0.5 sm:space-y-1 text-xs text-muted-foreground">
                 <p><span className="font-medium text-foreground">User:</span> user1 / user123</p>
                 <p><span className="font-medium text-foreground">Admin:</span> admin / admin123</p>
+                <p><span className="font-medium text-foreground">Teknisi:</span> teknisi1 / teknisi123</p>
               </div>
             </div>
           </CardContent>
@@ -137,7 +138,7 @@ export function LoginPage() {
 
         {/* Footer */}
         <p className="text-center text-xs sm:text-sm text-muted-foreground mt-4 sm:mt-6">
-          © 2025 Suara Mahasiswa. Kelompok 3.
+          © 2024 Suara Mahasiswa. Semua hak dilindungi.
         </p>
       </div>
     </div>

@@ -3,7 +3,13 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 // Tipe data untuk user
 export interface User {
   username: string;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'technician';
+  fullName: string;
+}
+
+// Daftar teknisi yang tersedia
+export interface Technician {
+  username: string;
   fullName: string;
 }
 
@@ -31,6 +37,12 @@ export const STATUS_LABELS: Record<ReportStatus, string> = {
   resolved: 'Selesai',
 };
 
+// Tipe data untuk koordinat lokasi
+export interface Coordinates {
+  latitude: number;
+  longitude: number;
+}
+
 // Tipe data untuk laporan
 export interface Report {
   id: number;
@@ -41,8 +53,24 @@ export interface Report {
   authorFullName: string;
   createdAt: Date;
   status: ReportStatus;
+  imageUrl?: string;
+  coordinates?: Coordinates;
   adminReply?: string;
   adminReplyAt?: Date;
+  assignedTo?: string; // username teknisi
+  assignedToName?: string; // nama lengkap teknisi
+  assignedAt?: Date;
+  technicianReply?: string;
+  technicianReplyAt?: Date;
+}
+
+// Tipe data untuk membuat laporan baru
+export interface CreateReportData {
+  title: string;
+  category: ReportCategory;
+  content: string;
+  imageUrl?: string;
+  coordinates?: Coordinates;
 }
 
 // Kredensial yang sudah di-hardcode
@@ -54,16 +82,29 @@ const CREDENTIALS = {
   admins: [
     { username: 'admin', password: 'admin123', fullName: 'Admin Kampus', role: 'admin' as const },
   ],
+  technicians: [
+    { username: 'teknisi1', password: 'teknisi123', fullName: 'Pak Joko Teknisi', role: 'technician' as const },
+    { username: 'teknisi2', password: 'teknisi123', fullName: 'Pak Budi Teknisi', role: 'technician' as const },
+    { username: 'teknisi3', password: 'teknisi123', fullName: 'Pak Ahmad Teknisi', role: 'technician' as const },
+  ],
 };
+
+// Export daftar teknisi untuk digunakan di komponen lain
+export const TECHNICIANS: Technician[] = CREDENTIALS.technicians.map((t) => ({
+  username: t.username,
+  fullName: t.fullName,
+}));
 
 interface AuthContextType {
   user: User | null;
   reports: Report[];
   login: (username: string, password: string) => { success: boolean; message: string };
   logout: () => void;
-  addReport: (title: string, category: ReportCategory, content: string) => void;
+  addReport: (data: CreateReportData) => void;
   updateReportStatus: (id: number, status: ReportStatus) => void;
   addAdminReply: (id: number, reply: string) => void;
+  assignToTechnician: (id: number, technicianUsername: string) => void;
+  addTechnicianReply: (id: number, reply: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -94,7 +135,7 @@ const loadReportsFromStorage = (): Report[] => {
       category: 'Lainnya' as ReportCategory,
       content: 'Koneksi WiFi di gedung kuliah sangat lambat, terutama saat jam sibuk. Mohon ditingkatkan kapasitasnya.',
       author: 'user1',
-      authorFullName: 'Ahmad Mahasiswa',
+      authorFullName: 'M Dantha Arianvasya',
       createdAt: new Date('2024-01-15'),
       status: 'resolved' as ReportStatus,
       adminReply: 'Terima kasih atas laporannya. Kami akan segera menghubungi pihak IT untuk meningkatkan kapasitas WiFi.',
@@ -175,6 +216,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: true, message: 'Login berhasil!' };
     }
 
+    // Cek di daftar teknisi
+    const foundTechnician = CREDENTIALS.technicians.find(
+      (t) => t.username === username && t.password === password
+    );
+    if (foundTechnician) {
+      const userData = { username: foundTechnician.username, role: foundTechnician.role, fullName: foundTechnician.fullName };
+      setUser(userData);
+      sessionStorage.setItem('suara-mahasiswa-user', JSON.stringify(userData));
+      return { success: true, message: 'Login berhasil!' };
+    }
+
     return { success: false, message: 'Username atau password salah!' };
   };
 
@@ -185,18 +237,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // Fungsi menambah laporan baru
-  const addReport = (title: string, category: ReportCategory, content: string) => {
+  const addReport = (data: CreateReportData) => {
     if (!user) return;
     
     const newReport: Report = {
       id: Date.now(),
-      title,
-      category,
-      content,
+      title: data.title,
+      category: data.category,
+      content: data.content,
       author: user.username,
       authorFullName: user.fullName,
       createdAt: new Date(),
       status: 'pending',
+      imageUrl: data.imageUrl,
+      coordinates: data.coordinates,
     };
     
     setReports((prev) => [newReport, ...prev]);
@@ -222,8 +276,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  // Fungsi assign laporan ke teknisi
+  const assignToTechnician = (id: number, technicianUsername: string) => {
+    const technician = TECHNICIANS.find((t) => t.username === technicianUsername);
+    if (!technician) return;
+
+    setReports((prev) =>
+      prev.map((report) =>
+        report.id === id
+          ? {
+              ...report,
+              assignedTo: technician.username,
+              assignedToName: technician.fullName,
+              assignedAt: new Date(),
+            }
+          : report
+      )
+    );
+  };
+
+  // Fungsi menambah balasan teknisi
+  const addTechnicianReply = (id: number, reply: string) => {
+    setReports((prev) =>
+      prev.map((report) =>
+        report.id === id
+          ? { ...report, technicianReply: reply, technicianReplyAt: new Date() }
+          : report
+      )
+    );
+  };
+
   return (
-    <AuthContext.Provider value={{ user, reports, login, logout, addReport, updateReportStatus, addAdminReply }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      reports, 
+      login, 
+      logout, 
+      addReport, 
+      updateReportStatus, 
+      addAdminReply,
+      assignToTechnician,
+      addTechnicianReply
+    }}>
       {children}
     </AuthContext.Provider>
   );
